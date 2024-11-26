@@ -27,6 +27,9 @@ import { Models } from "node-appwrite";
 import { useState } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { renameFile } from "@/lib/actions/file.actions";
+import { usePathname } from "next/navigation";
+import { FileDetails } from "./ActionsModalContent";
 
 const ActionsDropdown = ({ file }: { file: Models.Document }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,6 +37,8 @@ const ActionsDropdown = ({ file }: { file: Models.Document }) => {
   const [action, setAction] = useState<ActionType | null>(null);
   const [name, setName] = useState(file.name);
   const [isLoading, setIsLoading] = useState(false);
+
+  const path = usePathname();
 
   const closeAllModals = () => {
     setIsDropdownOpen(false);
@@ -43,7 +48,25 @@ const ActionsDropdown = ({ file }: { file: Models.Document }) => {
     //setEmails([]);
   };
 
-  const handleActions = async () => {};
+  const handleActions = async () => {
+    if (!action) return;
+
+    setIsLoading(true);
+    let success = false;
+
+    const actions = {
+      rename: () =>
+        renameFile({ fileId: file.$id, name, extension: file.extension, path }),
+      share: () => {},
+      delete: () => {},
+    };
+
+    success = await actions[action.value as keyof typeof actions]();
+
+    if (success) closeAllModals();
+
+    setIsLoading(false);
+  };
 
   const renderDialogContent = () => {
     if (!action) return;
@@ -56,6 +79,7 @@ const ActionsDropdown = ({ file }: { file: Models.Document }) => {
           <DialogTitle className="text-center text-light-100">
             {label}
           </DialogTitle>
+
           {value === "rename" && (
             <Input
               type="text"
@@ -63,6 +87,8 @@ const ActionsDropdown = ({ file }: { file: Models.Document }) => {
               onChange={(e) => setName(e.target.value)}
             />
           )}
+
+          {value === "details" && <FileDetails file={file} />}
         </DialogHeader>
 
         {["rename", "share", "delete"].includes(value) && (
